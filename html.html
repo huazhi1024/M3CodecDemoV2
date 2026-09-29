@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>M3Codec: Audio Codec Comparison Demo</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400..600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-page: #f6f9fc;
+            --bg-card: #ffffff;
+            --text-primary: #1a2332;
+            --text-secondary: #465a6b;
+            --text-muted: #6a7f93;
+            --accent: #155e75;
+            --accent-soft: #e0f0fe;
+            --border-light: #e2e8f0;
+            --border-soft: #edf2f7;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 8px 28px -10px rgba(0,0,0,0.08);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.03), 0 3px 8px -4px rgba(0,0,0,0.05);
+            --radius-lg: 1.25rem;
+            --radius-md: 0.85rem;
+            --radius-sm: 0.5rem;
+            --transition-fast: 0.18s ease;
+            --transition-smooth: 0.25s cubic-bezier(0.4,0,0.2,1);
+
+            --color-noq: #f4f5f7;
+            --color-high: #f0eafc;   /* ~1000 bps */
+            --color-mid: #e3f0fc;    /* ~600 bps */
+            --color-low: #e3f7ec;    /* ~300 bps */
+
+            --color-noq-border: #d5d9e0;
+            --color-high-border: #dccdf5;
+            --color-mid-border: #c3daf5;
+            --color-low-border: #b8e0cc;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-page);
+            margin: 0;
+            padding: 2rem 1.5rem 3rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            background-image:
+                radial-gradient(ellipse at 25% 10%, rgba(21,94,117,0.03) 0%, transparent 55%),
+                radial-gradient(ellipse at 75% 90%, rgba(21,94,117,0.02) 0%, transparent 55%);
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1380px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 2rem 1.8rem 2.2rem;
+            border: 1px solid var(--border-soft);
+        }
+
+        /* Header */
+        .header-area { margin-bottom: 1.6rem; }
+        .header-area h1 {
+            font-size: 1.95rem;
+            font-weight: 700;
+            margin: 0 0 0.3rem;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #0b2b3b 0%, #155e75 50%, #1e809e 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+        .header-area .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent);
+            padding-left: 0.9rem;
+            margin: 0.4rem 0 0;
+            max-width: 720px;
+        }
+        .header-area .subtitle strong { color: #0f4458; font-weight: 600; }
+        .header-area .subtitle .highlight-fire { color: #d97706; font-weight: 600; }
+
+        /* Abstract card */
+        .abstract-card {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 1.4rem 1.6rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+            transition: var(--transition-smooth);
+        }
+        .abstract-card:hover {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05), 0 6px 20px -8px rgba(0,0,0,0.08);
+        }
+        .abstract-card h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            letter-spacing: -0.01em;
+        }
+        .abstract-card h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        .abstract-text {
+            margin: 0;
+            font-size: 0.86rem;
+            color: #334155;
+            text-align: justify;
+        }
+
+        /* Summary card */
+        .summary-card {
+            background: linear-gradient(135deg, #f9fbfd 0%, #f3f8fc 100%);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.3rem;
+            margin-bottom: 1.4rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 2rem;
+            align-items: flex-start;
+            box-shadow: var(--shadow-sm);
+        }
+        .summary-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            min-width: 130px;
+            flex: 1 1 auto;
+        }
+        .summary-item .s-icon {
+            flex-shrink: 0;
+            font-size: 1.15rem;
+            margin-top: 1px;
+            width: 26px;
+            text-align: center;
+        }
+        .summary-item .s-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.1rem;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .summary-item .s-content span { font-size: 0.75rem; color: var(--text-muted); }
+        .summary-item.fire-highlight .s-icon { color: #d97706; }
+        .summary-item.fire-highlight .s-content strong { color: #9a4d0c; }
+
+        .legend-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem 1rem;
+            margin-top: 0.2rem;
+        }
+        .legend-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .legend-dot::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .legend-dot.dot-noq::before { background: var(--color-noq); border: 1px solid var(--color-noq-border); }
+        .legend-dot.dot-high::before { background: var(--color-high); border: 1px solid var(--color-high-border); }
+        .legend-dot.dot-mid::before { background: var(--color-mid); border: 1px solid var(--color-mid-border); }
+        .legend-dot.dot-low::before { background: var(--color-low); border: 1px solid var(--color-low-border); }
+
+        /* Architecture diagram */
+        .architecture-diagram {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.2rem 0.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+        .architecture-diagram .diagram-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        .architecture-diagram img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 6px;
+        }
+
+        /* Dataset bar */
+        .dataset-bar {
+            display: flex;
+            gap: 0.7rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 0.9rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .dataset-btn {
+            background: transparent;
+            border: 1.5px solid transparent;
+            font-size: 0.88rem;
+            font-weight: 500;
+            padding: 0.45rem 1.4rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            color: #2c4b63;
+            font-family: inherit;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        .dataset-btn:hover { background: #eaf2f9; color: #0b2b3b; border-color: #c3daf5; }
+        .dataset-btn.active {
+            background: #0f4458;
+            color: white;
+            border-color: #0f4458;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-weight: 600;
+        }
+        .info-badge {
+            background: #eaf2f9;
+            padding: 0.3rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #155e75;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+            margin-left: auto;
+        }
+
+        /* Stop-all button */
+        .stop-all-btn {
+            background: #fff;
+            border: 1.5px solid #f0c9c9;
+            color: #b91c1c;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .stop-all-btn:hover { background: #fef2f2; border-color: #efb0b0; }
+        .stop-all-btn:active { transform: scale(0.97); }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+        .model-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            min-width: 1100px;
+        }
+        .model-table th {
+            background: #f8fafc;
+            padding: 12px 10px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #dce4ec;
+            color: #1a3a4b;
+            font-size: 0.75rem;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .model-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #edf2f7;
+            vertical-align: middle;
+        }
+        .model-table tbody tr { transition: background 0.15s ease; }
+        .model-table tbody tr:hover td { background: #f9fbfd; }
+
+        .model-table th:first-child,
+        .model-table td:first-child { width: 105px; }
+        .model-table th:nth-child(2),
+        .model-table td:nth-child(2) { width: 185px; }
+
+        .group-col {
+            font-weight: 700;
+            text-align: center;
+            vertical-align: middle;
+            border-right: 1px solid #e2e8f0;
+            font-size: 0.8rem;
+            letter-spacing: 0.03em;
+        }
+        .model-col {
+            text-align: left;
+            padding-left: 1rem !important;
+            font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+            font-weight: 500;
+            font-size: 0.76rem;
+            color: #1a4b62;
+            border-right: 1px solid #ecf3f8;
+            letter-spacing: -0.01em;
+        }
+        .model-name-with-icon { display: inline-flex; align-items: center; gap: 4px; }
+        .fire-icon-inline {
+            font-size: 1rem;
+            filter: drop-shadow(0 1px 2px rgba(217,119,6,0.4));
+            animation: subtlePulse 1.2s ease-in-out infinite;
+        }
+        @keyframes subtlePulse {
+            0% { transform: scale(1); opacity: 0.85; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.85; }
+        }
+
+        audio {
+            width: 145px;
+            height: 36px;
+            border-radius: 30px;
+            outline: none;
+            vertical-align: middle;
+            transition: box-shadow 0.2s ease;
+        }
+        audio::-webkit-media-controls-panel { background: #f7f9fb; }
+
+        /* 正在播放的音频高亮 */
+        audio.is-playing {
+            box-shadow: 0 0 0 2px #155e75, 0 2px 10px -2px rgba(21,94,117,0.45);
+        }
+
+        .missing-audio {
+            font-size: 0.65rem;
+            color: #b91c1c;
+            display: block;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        footer {
+            margin-top: 2rem;
+            font-size: 0.72rem;
+            text-align: center;
+            color: #7c8fa0;
+            border-top: 1px solid #eef2f6;
+            padding-top: 1.2rem;
+            line-height: 1.6;
+        }
+        footer code {
+            background: #eef2f5;
+            padding: 0.15rem 0.4rem;
+            border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+        }
+
+        @media (max-width: 780px) {
+            body { padding: 0.8rem; }
+            .demo-container { padding: 1.2rem 0.8rem 1.4rem; }
+            .header-area h1 { font-size: 1.4rem; }
+            .header-area .subtitle { font-size: 0.78rem; }
+            audio { width: 115px; height: 32px; }
+            .model-col { font-size: 0.7rem; padding-left: 0.5rem !important; }
+            .model-table { min-width: 900px; font-size: 0.74rem; }
+            .summary-card { flex-direction: column; gap: 0.6rem; padding: 0.8rem 1rem; }
+            .abstract-card { padding: 1rem 1.2rem; font-size: 0.8rem; }
+        }
+        @media (max-width: 480px) {
+            .header-area h1 { font-size: 1.2rem; }
+            audio { width: 95px; height: 28px; }
+            .model-table { min-width: 780px; font-size: 0.68rem; }
+            .model-table th:first-child,
+            .model-table td:first-child { width: 75px; }
+            .model-table th:nth-child(2),
+            .model-table td:nth-child(2) { width: 130px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="header-area">
+            <h1>🎧 M3Codec: Neural Audio Codec Comparison</h1>
+            <p class="subtitle">
+                <strong>out-of-domain (VCTK)</strong> and <strong>out-of-domain (ST-CMDS)</strong> · No‑quantization / ~1000 bps / ~600 bps / ~300 bps groups<br>
+                Independent audio players for subjective evaluation. <span class="highlight-fire">🔥 Flame</span> marks our proposed <strong>M3Codec</strong> series.
+            </p>
+        </div>
+
+        <!-- Abstract -->
+        <div class="abstract-card">
+            <h2>Abstract</h2>
+            <p class="abstract-text">
+                Recent neural speech codecs have achieved impressive reconstruction quality at moderate bitrates. However, when the bitrate drops below 1 kbps, existing codecs suffer from severe information loss and cumulative distortion, leading to degraded intelligibility and perceptual quality. To address these challenges, we propose <strong>M3Codec</strong>, a unified framework for ultra‑low‑bitrate speech coding that integrates multi‑modal feature fusion, multi‑stage decoder densification, and multi‑scale perceptual optimization. Specifically, M3Codec incorporates Electromagnetic Articulography (EMA)-based articulatory cues as an auxiliary modality and fuses them with acoustic features at the encoder, introducing physically grounded speech production priors that improve representation robustness and interpretability under extreme compression. At the decoder, we propose a Multi‑stage Decoder Densification (MDD) mechanism implemented via a lightweight Focal Modulation block after each upsampling stage, enabling content‑adaptive refinement and progressive restoration of fine‑grained temporal‑spectral structures. Furthermore, we develop a Multi‑scale Psychoacoustic CQT‑based Perceptual Loss to better preserve harmonic structures and high‑frequency transients by explicitly constraining reconstruction in a perceptually aligned time‑frequency domain. Experiments on both in-domain and out-of-domain benchmarks show that M3Codec achieves statistically significant improvements in PESQ and STOI over all baselines within the corresponding ~600 bps and ~300 bps groups, while attaining MUSHRA scores comparable to those of ~1000 bps reference systems.
+            </p>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-card">
+            <div class="summary-item">
+                <span class="s-icon">📊</span>
+                <div class="s-content">
+                    <strong>Scale</strong>
+                    <span>4 groups · 10 samples each model variant · 2 datasets</span>
+                </div>
+            </div>
+            <div class="summary-item">
+                <span class="s-icon">🎯</span>
+                <div class="s-content">
+                    <strong>Scenarios</strong>
+                    <span>out-of-domain (VCTK English) &amp; out-of-domain (ST‑CMDS Chinese)</span>
+                </div>
+            </div>
+            <div class="summary-item fire-highlight">
+                <span class="s-icon">🔥</span>
+                <div class="s-content">
+                    <strong>M3Codec</strong>
+                    <span>No‑Q · ~607 bps · ~310 bps variants</span>
+                </div>
+            </div>
+            <div class="summary-item">
+                <span class="s-icon">🎨</span>
+                <div class="s-content">
+                    <strong>Group colors</strong>
+                    <span class="legend-dots">
+                        <span class="legend-dot dot-noq">NoQ</span>
+                        <span class="legend-dot dot-high">~1000 bps</span>
+                        <span class="legend-dot dot-mid">~600 bps</span>
+                        <span class="legend-dot dot-low">~300 bps</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architecture diagram -->
+        <div class="architecture-diagram">
+            <div class="diagram-title">
+                <span>🧠 M3Codec Overall Framework</span>
+            </div>
+            <img 
+                src="imgs/main-arch.png" 
+                alt="M3Codec overall framework diagram"
+                style="width:100%; max-width:750px;"
+            >
+        </div>
+
+        <div class="dataset-bar">
+            <button class="dataset-btn active" data-dataset="VCTK">🗣️ out-of-domain · VCTK</button>
+            <button class="dataset-btn" data-dataset="ST-CMDS">🌏 out-of-domain · ST‑CMDS</button>
+            <span class="info-badge" id="datasetHint">🇬🇧 English speech (VCTK)</span>
+            <!-- <button class="stop-all-btn" id="stopAllBtn" type="button" title="Stop all currently playing audio">⏹ Stop playback</button> -->
+        </div>
+
+        <div class="table-wrapper">
+            <table class="model-table" id="compareTable">
+                <thead>
+                    <tr>
+                        <th>Group</th>
+                        <th>Model</th>
+                        <th>🎵 wav1</th>
+                        <th>🎵 wav2</th>
+                        <th>🎵 wav3</th>
+                        <th>🎵 wav4</th>
+                        <th>🎵 wav5</th>
+                        <th>🎵 wav6</th>
+                        <th>🎵 wav7</th>
+                        <th>🎵 wav8</th>
+                        <th>🎵 wav9</th>
+                        <th>🎵 wav10</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <footer>
+            ⚡ Demo page for subjective evaluation of M3Codec and baseline codecs. Audio samples are loaded from configured URLs.<br>
+            🔥 Flame icon highlights M3Codec models. Group rows are color‑coded for quick visual separation.<br>
+            🔊 Only <strong>one audio plays at a time</strong> — starting a new clip automatically stops the previous one.
+        </footer>
+    </div>
+
+    <script>
+        const GROUPS = [
+            {
+                name: "NoQ",
+                models: ["GT", "SPARC", "M3Codec(removal Quantizer)"]
+            },
+            {
+                name: "~1000 bps",
+                models: [
+                    "BigCodec@1040bps",
+                    //"SpeechTokenizer@1000bps",
+                    "SAQCodec@970bps",
+                ]
+            },
+            {
+                name: "~600 bps",
+                models: [
+                    "WavTokenizer-Large@900bps",
+                    "MiMi@825bps",
+                    "TAAE@700bps",
+                    "SAQCodec@675bps",
+                    "SementiCodec@650bps",
+                    "FocalCodec@650bps",
+                    "M3Codec@607bps",
+                ]
+            },
+            {
+                name: "~300 bps",
+                models: [
+                    "WavTokenizer-Large@480bps",
+                    "MiMi@413bps",
+                    "TAAE@400bps",
+                    "SAQCodec@350bps",
+                    "SementiCodec@330bps",
+                    "FocalCodec@330bps",
+                    "M3Codec@310bps"
+                ]
+            }
+        ];
+
+        const GROUP_COLORS = {
+            "NoQ": "#f4f5f7",
+            "~1000 bps": "#f0eafc",
+            "~600 bps": "#e3f0fc",
+            "~300 bps": "#e3f7ec"
+        };
+
+        function isM3CodecModel(modelName) {
+            return modelName.toLowerCase().includes("m3codec");
+        }
+
+        function formatModelName(modelName) {
+            if (isM3CodecModel(modelName)) {
+                return `<span class="model-name-with-icon"><span class="fire-icon-inline">🔥</span>${modelName}</span>`;
+            }
+            return modelName;
+        }
+
+        const audioUrlMap = {
+            "VCTK": {
+                "GT": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_gt_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_gt_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_gt_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_gt_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_gt_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_gt_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_gt_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_gt_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_gt_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_gt_16kHz16bit.wav",
+                },
+
+
+                "SPARC": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_sparc_ckpt_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_sparc_ckpt_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_sparc_ckpt_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_sparc_ckpt_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_sparc_ckpt_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_sparc_ckpt_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_sparc_ckpt_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_sparc_ckpt_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_sparc_ckpt_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_sparc_ckpt_16kHz16bit.wav",
+                },
+
+                "M3Codec(removal Quantizer)": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_ours_novq_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_ours_novq_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_ours_novq_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_ours_novq_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_ours_novq_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_ours_novq_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_ours_novq_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_ours_novq_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_ours_novq_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_ours_novq_16kHz16bit.wav",
+                },
+
+                /* ==================== ~1000 bps ==================== */
+                "BigCodec@1040bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_bigcodec_1040bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_bigcodec_1040bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_bigcodec_1040bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_bigcodec_1040bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_bigcodec_1040bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_bigcodec_1040bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_bigcodec_1040bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_bigcodec_1040bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_bigcodec_1040bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_bigcodec_1040bps_16kHz16bit.wav",
+                },
+
+                // "SpeechTokenizer@1000bps": {
+                //     "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_speechtokenizer_1000bps_16kHz16bit.wav",
+                // },
+
+                "SAQCodec@970bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_saqcodec_970bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_saqcodec_970bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_saqcodec_970bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_saqcodec_970bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_saqcodec_970bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_saqcodec_970bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_saqcodec_970bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_saqcodec_970bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_saqcodec_970bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_saqcodec_970bps_16kHz16bit.wav",
+                },
+
+                /* ==================== ~600 bps ==================== */
+                "WavTokenizer-Large@900bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_wavtokenizer_900bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_wavtokenizer_900bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_wavtokenizer_900bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_wavtokenizer_900bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_wavtokenizer_900bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_wavtokenizer_900bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_wavtokenizer_900bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_wavtokenizer_900bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_wavtokenizer_900bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_wavtokenizer_900bps_16kHz16bit.wav",
+                },
+                "MiMi@825bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_mimi_825bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_mimi_825bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_mimi_825bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_mimi_825bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_mimi_825bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_mimi_825bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_mimi_825bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_mimi_825bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_mimi_825bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_mimi_825bps_16kHz16bit.wav"
+                },
+                "TAAE@700bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_stablecodec_700bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_stablecodec_700bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_stablecodec_700bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_stablecodec_700bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_stablecodec_700bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_stablecodec_700bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_stablecodec_700bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_stablecodec_700bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_stablecodec_700bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_stablecodec_700bps_16kHz16bit.wav"
+                },
+
+                "SAQCodec@675bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_saqcodec_675bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_saqcodec_675bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_saqcodec_675bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_saqcodec_675bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_saqcodec_675bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_saqcodec_675bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_saqcodec_675bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_saqcodec_675bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_saqcodec_675bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_saqcodec_675bps_16kHz16bit.wav",
+                   
+                },
+
+                "SementiCodec@650bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_semanticodec_650bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_semanticodec_650bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_semanticodec_650bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_semanticodec_650bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_semanticodec_650bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_semanticodec_650bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_semanticodec_650bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_semanticodec_650bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_semanticodec_650bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_semanticodec_650bps_16kHz16bit.wav"
+                },
+
+
+                "FocalCodec@650bps": {
+
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_focalcodec_650bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_focalcodec_650bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_focalcodec_650bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_focalcodec_650bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_focalcodec_650bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_focalcodec_650bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_focalcodec_650bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_focalcodec_650bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_focalcodec_650bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_focalcodec_650bps_16kHz16bit.wav",
+                   
+                },
+
+
+
+                "M3Codec@607bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_ours_607bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_ours_607bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_ours_607bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_ours_607bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_ours_607bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_ours_607bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_ours_607bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_ours_607bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_ours_607bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_ours_607bps_16kHz16bit.wav"
+                },
+
+                /* ==================== ~300 bps ==================== */
+                "WavTokenizer-Large@480bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_wavtokenizer_480bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_wavtokenizer_480bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_wavtokenizer_480bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_wavtokenizer_480bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_wavtokenizer_480bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_wavtokenizer_480bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_wavtokenizer_480bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_wavtokenizer_480bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_wavtokenizer_480bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_wavtokenizer_480bps_16kHz16bit.wav"
+                },
+
+                "MiMi@413bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_mimi_413bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_mimi_413bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_mimi_413bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_mimi_413bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_mimi_413bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_mimi_413bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_mimi_413bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_mimi_413bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_mimi_413bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_mimi_413bps_16kHz16bit.wav"
+                },
+                "TAAE@400bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_stablecodec_400bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_stablecodec_400bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_stablecodec_400bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_stablecodec_400bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_stablecodec_400bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_stablecodec_400bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_stablecodec_400bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_stablecodec_400bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_stablecodec_400bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_stablecodec_400bps_16kHz16bit.wav"
+                },
+
+                "SAQCodec@350bps":{
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_saqcodec_350bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_saqcodec_350bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_saqcodec_350bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_saqcodec_350bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_saqcodec_350bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_saqcodec_350bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_saqcodec_350bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_saqcodec_350bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_saqcodec_350bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_saqcodec_350bps_16kHz16bit.wav",
+
+                },
+
+                "SementiCodec@330bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_semanticodec_330bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_semanticodec_330bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_semanticodec_330bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_semanticodec_330bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_semanticodec_330bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_semanticodec_330bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_semanticodec_330bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_semanticodec_330bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_semanticodec_330bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_semanticodec_330bps_16kHz16bit.wav",
+                },
+                
+                "FocalCodec@330bps":{
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_focalcodec_330bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_focalcodec_330bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_focalcodec_330bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_focalcodec_330bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_focalcodec_330bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_focalcodec_330bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_focalcodec_330bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_focalcodec_330bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_focalcodec_330bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_focalcodec_330bps_16kHz16bit.wav",
+
+                },
+
+
+                "M3Codec@310bps": {
+                    "1": "audio/VCTK_selectedOK_for_all_ForDemo/p234_302_ours_310bps_16kHz16bit.wav",
+                    "2": "audio/VCTK_selectedOK_for_all_ForDemo/p250_124_ours_310bps_16kHz16bit.wav",
+                    "3": "audio/VCTK_selectedOK_for_all_ForDemo/p256_224_ours_310bps_16kHz16bit.wav",
+                    "4": "audio/VCTK_selectedOK_for_all_ForDemo/p259_188_ours_310bps_16kHz16bit.wav",
+                    "5": "audio/VCTK_selectedOK_for_all_ForDemo/p282_305_ours_310bps_16kHz16bit.wav",
+                    "6": "audio/VCTK_selectedOK_for_all_ForDemo/p299_277_ours_310bps_16kHz16bit.wav",
+                    "7": "audio/VCTK_selectedOK_for_all_ForDemo/p304_362_ours_310bps_16kHz16bit.wav",
+                    "8": "audio/VCTK_selectedOK_for_all_ForDemo/p334_405_ours_310bps_16kHz16bit.wav",
+                    "9": "audio/VCTK_selectedOK_for_all_ForDemo/p361_303_ours_310bps_16kHz16bit.wav",
+                    "10": "audio/VCTK_selectedOK_for_all_ForDemo/p363_161_ours_310bps_16kHz16bit.wav"
+                }
+            },
+            
+            /////////////////////////中文///////////////////////////////////
+            "ST-CMDS": {
+                "GT": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_gt_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_gt_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_gt_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_gt_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_gt_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_gt_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_gt_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_gt_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_gt_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_gt_16kHz16bit.wav",
+                },
+
+                "SPARC": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_sparc_ckpt_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_sparc_ckpt_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_sparc_ckpt_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_sparc_ckpt_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_sparc_ckpt_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_sparc_ckpt_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_sparc_ckpt_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_sparc_ckpt_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_sparc_ckpt_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_sparc_ckpt_16kHz16bit.wav",
+                },
+
+                "M3Codec(removal Quantizer)": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_ours_novq_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_ours_novq_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_ours_novq_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_ours_novq_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_ours_novq_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_ours_novq_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_ours_novq_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_ours_novq_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_ours_novq_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_ours_novq_16kHz16bit.wav",
+                },
+
+                /* ==================== ~1000 bps ==================== */
+                "BigCodec@1040bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_bigcodec_1040bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_bigcodec_1040bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_bigcodec_1040bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_bigcodec_1040bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_bigcodec_1040bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_bigcodec_1040bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_bigcodec_1040bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_bigcodec_1040bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_bigcodec_1040bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_bigcodec_1040bps_16kHz16bit.wav",
+                },
+                // "SpeechTokenizer@1000bps": {
+                //     "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_speechtokenizer_1000bps_16kHz16bit.wav",
+                //     "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_speechtokenizer_1000bps_16kHz16bit.wav",
+                // },//////////////////////
+                "SAQCodec@970bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_saqcodec_970bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_saqcodec_970bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_saqcodec_970bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_saqcodec_970bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_saqcodec_970bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_saqcodec_970bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_saqcodec_970bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_saqcodec_970bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_saqcodec_970bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_saqcodec_970bps_16kHz16bit.wav",
+                },
+
+                /* ==================== ~600 bps ==================== */
+                "WavTokenizer-Large@900bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_wavtokenizer_900bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_wavtokenizer_900bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_wavtokenizer_900bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_wavtokenizer_900bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_wavtokenizer_900bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_wavtokenizer_900bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_wavtokenizer_900bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_wavtokenizer_900bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_wavtokenizer_900bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_wavtokenizer_900bps_16kHz16bit.wav",
+                },
+                "MiMi@825bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_mimi_825bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_mimi_825bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_mimi_825bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_mimi_825bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_mimi_825bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_mimi_825bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_mimi_825bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_mimi_825bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_mimi_825bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_mimi_825bps_16kHz16bit.wav",
+                },
+                "TAAE@700bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_stablecodec_700bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_stablecodec_700bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_stablecodec_700bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_stablecodec_700bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_stablecodec_700bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_stablecodec_700bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_stablecodec_700bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_stablecodec_700bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_stablecodec_700bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_stablecodec_700bps_16kHz16bit.wav",
+                },
+                "SAQCodec@675bps":{
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_saqcodec_675bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_saqcodec_675bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_saqcodec_675bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_saqcodec_675bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_saqcodec_675bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_saqcodec_675bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_saqcodec_675bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_saqcodec_675bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_saqcodec_675bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_saqcodec_675bps_16kHz16bit.wav",
+                },
+
+                "SementiCodec@650bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_semanticodec_650bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_semanticodec_650bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_semanticodec_650bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_semanticodec_650bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_semanticodec_650bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_semanticodec_650bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_semanticodec_650bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_semanticodec_650bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_semanticodec_650bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_semanticodec_650bps_16kHz16bit.wav",
+                },
+
+                "FocalCodec@650bps":{
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_focalcodec_650bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_focalcodec_650bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_focalcodec_650bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_focalcodec_650bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_focalcodec_650bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_focalcodec_650bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_focalcodec_650bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_focalcodec_650bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_focalcodec_650bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_focalcodec_650bps_16kHz16bit.wav",
+                },
+
+
+                "M3Codec@607bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_ours_607bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_ours_607bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_ours_607bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_ours_607bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_ours_607bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_ours_607bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_ours_607bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_ours_607bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_ours_607bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_ours_607bps_16kHz16bit.wav",
+                },
+
+                /* ==================== ~300 bps ==================== */
+                "WavTokenizer-Large@480bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_wavtokenizer_480bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_wavtokenizer_480bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_wavtokenizer_480bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_wavtokenizer_480bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_wavtokenizer_480bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_wavtokenizer_480bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_wavtokenizer_480bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_wavtokenizer_480bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_wavtokenizer_480bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_wavtokenizer_480bps_16kHz16bit.wav",
+                },
+
+                "MiMi@413bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_mimi_413bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_mimi_413bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_mimi_413bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_mimi_413bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_mimi_413bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_mimi_413bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_mimi_413bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_mimi_413bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_mimi_413bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_mimi_413bps_16kHz16bit.wav",
+                },
+
+
+                "TAAE@400bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_stablecodec_400bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_stablecodec_400bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_stablecodec_400bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_stablecodec_400bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_stablecodec_400bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_stablecodec_400bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_stablecodec_400bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_stablecodec_400bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_stablecodec_400bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_stablecodec_400bps_16kHz16bit.wav",
+                },
+
+                "SAQCodec@350bps":{
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_saqcodec_350bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_saqcodec_350bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_saqcodec_350bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_saqcodec_350bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_saqcodec_350bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_saqcodec_350bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_saqcodec_350bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_saqcodec_350bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_saqcodec_350bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_saqcodec_350bps_16kHz16bit.wav",
+                },
+
+                "SementiCodec@330bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_semanticodec_330bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_semanticodec_330bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_semanticodec_330bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_semanticodec_330bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_semanticodec_330bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_semanticodec_330bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_semanticodec_330bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_semanticodec_330bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_semanticodec_330bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_semanticodec_330bps_16kHz16bit.wav",
+                },
+
+                "FocalCodec@330bps":{
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_focalcodec_330bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_focalcodec_330bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_focalcodec_330bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_focalcodec_330bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_focalcodec_330bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_focalcodec_330bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_focalcodec_330bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_focalcodec_330bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_focalcodec_330bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_focalcodec_330bps_16kHz16bit.wav",
+                },
+
+                "M3Codec@310bps": {
+                    "1": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00387A0017_ours_310bps_16kHz16bit.wav",
+                    "2": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00395A0114_ours_310bps_16kHz16bit.wav",
+                    "3": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397A0036_ours_310bps_16kHz16bit.wav",
+                    "4": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00397I0029_ours_310bps_16kHz16bit.wav",
+                    "5": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00401A0081_ours_310bps_16kHz16bit.wav",
+                    "6": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00406A0041_ours_310bps_16kHz16bit.wav",
+                    "7": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00438A0001_ours_310bps_16kHz16bit.wav",
+                    "8": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00439A0067_ours_310bps_16kHz16bit.wav",
+                    "9": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00441A0057_ours_310bps_16kHz16bit.wav",
+                    "10": "audio/STCMDS_selectedOK_for_all_ForDemo/20170001P00444A0048_ours_310bps_16kHz16bit.wav",
+                }
+            }
+        };
+
+        function getAudioUrl(dataset, model, sampleIdx) {
+            try {
+                const modelMap = audioUrlMap[dataset];
+                if (!modelMap) return null;
+                const sampleMap = modelMap[model];
+                if (!sampleMap) return null;
+                const url = sampleMap[sampleIdx.toString()];
+                return url || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        let currentDataset = "VCTK";
+
+        /* ============================================================
+         *  单例播放控制：同一时刻只允许一个音频在播放
+         * ============================================================ */
+        let activeAudio = null;   // 当前正在播放的 <audio> 元素
+
+        function clearActiveAudio(resetTime = false) {
+            if (!activeAudio) return;
+            const a = activeAudio;
+            activeAudio = null;       // 先置空，避免 pause 事件里的判断出错
+            a.classList.remove("is-playing");
+            a.pause();
+            if (resetTime) {
+                try { a.currentTime = 0; } catch (e) { /* 未加载时忽略 */ }
+            }
+        }
+
+        /**
+         * 给单个 <audio> 绑定互斥播放逻辑
+         * 关键点：
+         *  1) 用 'play' 事件（而不是 'click'），这样键盘操作、系统媒体键同样生效；
+         *  2) 停止旧音频用 pause()，不要用 load()，避免多余的网络请求；
+         *  3) 只在 'ended' 时清空 activeAudio，'pause' 时不清空，
+         *     否则拖动进度条（内部会触发 pause/play）会误清状态。
+         */
+        function bindExclusivePlay(audio) {
+            audio.addEventListener("play", () => {
+                if (activeAudio && activeAudio !== audio) {
+                    clearActiveAudio(true);   // 上一个音频回到开头
+                }
+                activeAudio = audio;
+                audio.classList.add("is-playing");
+            });
+
+            audio.addEventListener("ended", () => {
+                if (activeAudio === audio) {
+                    audio.classList.remove("is-playing");
+                    activeAudio = null;
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById("tableBody");
+            if (!tbody) return;
+
+            // 重建表格前，先停掉正在播放的音频（否则会播放一个已脱离 DOM 的元素）
+            clearActiveAudio(true);
+
+            tbody.innerHTML = "";
+
+            for (let g of GROUPS) {
+                const groupName = g.name;
+                const models = g.models;
+                const rowCount = models.length;
+                const groupBgColor = GROUP_COLORS[groupName] || "#f8fafc";
+
+                for (let i = 0; i < rowCount; i++) {
+                    const model = models[i];
+                    const tr = document.createElement("tr");
+
+                    if (i === 0) {
+                        const tdGroup = document.createElement("td");
+                        tdGroup.setAttribute("rowspan", rowCount);
+                        tdGroup.className = "group-col";
+                        tdGroup.textContent = groupName;
+                        tdGroup.style.backgroundColor = groupBgColor;
+                        tr.appendChild(tdGroup);
+                    }
+
+                    const tdModel = document.createElement("td");
+                    tdModel.className = "model-col";
+                    tdModel.innerHTML = formatModelName(model);
+                    tr.appendChild(tdModel);
+
+                    for (let s = 1; s <= 10; s++) {
+                        const tdAudio = document.createElement("td");
+                        const audioUrl = getAudioUrl(currentDataset, model, s);
+                        if (audioUrl) {
+                            const audio = document.createElement("audio");
+                            audio.controls = true;
+                            audio.preload = "none";
+                            audio.style.width = "145px";
+                            audio.src = audioUrl;
+                            // 记录来源信息，便于调试 / 埋点
+                            audio.dataset.model = model;
+                            audio.dataset.sample = String(s);
+                            audio.dataset.dataset = currentDataset;
+
+                            audio.onerror = () => {
+                                if (!audio.hasAttribute("data-err")) {
+                                    const errSpan = document.createElement("span");
+                                    errSpan.className = "missing-audio";
+                                    errSpan.textContent = "❌ Missing";
+                                    tdAudio.appendChild(errSpan);
+                                    audio.setAttribute("data-err", "true");
+                                }
+                            };
+
+                            bindExclusivePlay(audio);   // ← 互斥播放绑定
+                            tdAudio.appendChild(audio);
+                        } else {
+                            const placeholder = document.createElement("span");
+                            placeholder.className = "missing-audio";
+                            placeholder.textContent = "⚠️ Not configured";
+                            tdAudio.appendChild(placeholder);
+                        }
+                        tr.appendChild(tdAudio);
+                    }
+                    tbody.appendChild(tr);
+                }
+            }
+        }
+
+        function switchDataset(dataset) {
+            currentDataset = dataset;
+            const hint = document.getElementById("datasetHint");
+            hint.textContent = dataset === "VCTK" ? "🇬🇧 English speech (VCTK)" : "🇨🇳 Chinese speech (ST-CMDS)";
+            renderTable();   // 内部已 clearActiveAudio(true)
+        }
+
+        function bindEvents() {
+            const btns = document.querySelectorAll(".dataset-btn");
+            btns.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const ds = btn.getAttribute("data-dataset");
+                    if (!ds || ds === currentDataset) return;
+                    btns.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    switchDataset(ds);
+                });
+            });
+
+            // 全局“停止播放”按钮
+            const stopBtn = document.getElementById("stopAllBtn");
+            if (stopBtn) {
+                stopBtn.addEventListener("click", () => clearActiveAudio(true));
+            }
+
+            // 兜底：页面隐藏 / 切到后台时暂停（可选，避免离开页面还在响）
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) clearActiveAudio(false);
+            });
+        }
+
+        function init() {
+            bindEvents();
+            renderTable();
+            console.log("✅ Demo ready: M3Codec comparison table — exclusive playback enabled.");
+        }
+        init();
+    </script>
+</body>
+</html>
